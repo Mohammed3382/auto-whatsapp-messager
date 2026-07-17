@@ -209,6 +209,118 @@ function start(options = {}) {
     }
   });
 
+  // -------------------------------------------------------------------------
+  // Browse chats + pull numbers from groups
+  //
+  // We read WhatsApp Web's internal store directly instead of the library's
+  // getChats()/getChatById(), because those serialize the whole chat (channels,
+  // communities, last messages) and throw on some accounts. We also convert the
+  // new @lid member ids into real phone numbers with toPn().
+  // -------------------------------------------------------------------------
+
+  // List groups and contacts (lightweight: id, name, member count only).
+  app.get('/api/chats', async (req, res) => {
+    if (clientState !== 'ready') return res.status(409).json({ error: 'not_connected' });
+    try {
+      const list = await client.pupPage.evaluate(() => {
+        const out = [];
+        const Chat = window.require('WAWebCollections').Chat;
+        for (const c of Chat.getModelsArray()) {
+          try {
+            if (!c.id || !c.id._serialized) continue;
+            const server = c.id.server;
+            if (server === 'newsletter' || c.id._serialized === 'status@broadcast') continue; // skip channels/status
+            const isGroup = server === 'g.us';
+            let count = 1;
+            if (isGroup) {
+              const p = c.groupMetadata && c.groupMetadata.participants;
+              count = p ? (p.getModelsArray ? p.getModelsArray().length : (p.length || 0)) : 0;
+            }
+            out.push({
+              id: c.id._serialized,
+              name: c.formattedTitle || c.name || (c.contact && (c.contact.formattedName || c.contact.pushname)) || c.id.user,
+              isGroup,
+              count,
+            });
+          } catch (e) { /* skip a bad chat, keep the rest */ }
+        }
+        return out;
+      });
+      list.sort((a, b) => (b.isGroup - a.isGroup) || String(a.name).localeCompare(String(b.name)));
+      res.json({ chats: list });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Return the phone numbers inside one chat/group, converting @lid -> real number.
+  app.get('/api/participants', async (req, res) => {
+    if (clientState !== 'ready') return res.status(409).json({ error: 'not_connected' });
+    const id = req.query.id;
+    if (!id) return res.status(400).json({ error: 'missing_id' });
+    try {
+      const data = await client.pupPage.evaluate(async (chatId) => {
+        const Collections = window.require('WAWebCollections');
+        const Chat = Collections.Chat;
+        const Contact = Collections.Contact;
+        const { toPn } = window.require('WAWebLidMigrationUtils');
+
+        let chat = null;
+        try { chat = Chat.get(chatId); } catch (e) {}
+        if (!chat) chat = Chat.getModelsArray().find((c) => c.id && c.id._serialized === chatId);
+        if (!chat) return { error: 'not_found' };
+
+        const title = chat.formattedTitle || chat.name || (chat.id && chat.id.user) || '';
+        const toPhone = (wid) => {
+          if (!wid) return null;
+          if (wid.server === 'c.us') return wid;
+          if (wid.server === 'lid') { try { return toPn(wid) || null; } catch (e) { return null; } }
+          return null;
+        };
+        const nameFor = (pnWid, origWid) => {
+          try {
+            const c = (pnWid && Contact.get(pnWid._serialized)) || (origWid && Contact.get(origWid._serialized));
+            if (c) return c.formattedName || c.pushname || c.name || c.verifiedName || '';
+          } catch (e) {}
+          return '';
+        };
+
+        // Individual chat -> single number.
+        if (chat.id.server !== 'g.us') {
+          const pn = toPhone(chat.id);
+          if (!pn || !pn.user) return { group: title, members: [], hidden: 1 };
+          return { group: title, members: [{ number: pn.user, id: pn._serialized, name: nameFor(pn, chat.id) || title }], hidden: 0 };
+        }
+
+        // Group -> make sure participants are loaded, then map each to a number.
+        try {
+          const wid = window.require('WAWebWidFactory').createWid(chat.id._serialized);
+          const GM = Collections.GroupMetadata || Collections.WAWebGroupMetadataCollection;
+          await GM.update(wid);
+        } catch (e) {}
+
+        const pc = chat.groupMetadata && chat.groupMetadata.participants;
+        const parts = pc ? (pc.getModelsArray ? pc.getModelsArray() : pc) : [];
+        const members = [];
+        const seen = new Set();
+        let hidden = 0;
+        for (const part of parts) {
+          const pn = toPhone(part.id);
+          if (!pn || !pn.user) { hidden++; continue; }
+          if (seen.has(pn.user)) continue;
+          seen.add(pn.user);
+          members.push({ number: pn.user, id: pn._serialized, name: nameFor(pn, part.id) });
+        }
+        return { group: title, members, hidden };
+      }, id);
+
+      if (data && data.error) return res.status(404).json({ error: data.error });
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get('/api/status', (req, res) => res.json({ state: clientState, qr: qrDataUrl, job: jobSnapshot() }));
 
   return new Promise((resolve) => {

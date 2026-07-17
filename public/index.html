@@ -165,7 +165,116 @@
     .l-error { color: var(--danger); }
     .empty-log { color: #3f5266; font-size: 12.5px; text-align: center; padding: 20px 0; }
 
+    /* ---------- Import button + picker modal ---------- */
+    .label-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .label-row label { margin-bottom: 7px; }
+    .import-btn {
+      display: inline-flex; align-items: center; gap: 7px; min-height: 34px;
+      background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.35); color: var(--accent);
+      border-radius: 9px; padding: 7px 12px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .import-btn:hover:not(:disabled) { background: rgba(34, 197, 94, 0.18); border-color: var(--accent); }
+    .import-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .import-btn svg { width: 15px; height: 15px; }
+
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 50; background: rgba(2, 6, 23, 0.72);
+      backdrop-filter: blur(4px); display: grid; place-items: center; padding: 20px;
+    }
+    .modal-overlay[hidden] { display: none; }
+    .modal {
+      width: min(920px, 100%); height: min(660px, 92vh); display: flex; flex-direction: column;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+    }
+    .modal-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+    .modal-head h3 { margin: 0; font-size: 16px; font-weight: 600; }
+    .icon-btn {
+      margin-inline-start: auto; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+      width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; cursor: pointer; transition: background 0.2s;
+    }
+    .icon-btn:hover { background: #26364f; color: var(--text); }
+    .icon-btn svg { width: 16px; height: 16px; }
+
+    .modal-body { flex: 1; display: grid; grid-template-columns: 300px 1fr; min-height: 0; }
+    .pane { display: flex; flex-direction: column; min-height: 0; }
+    .pane-chats { border-inline-end: 1px solid var(--line); }
+    .search {
+      margin: 12px; width: calc(100% - 24px); background: var(--panel-2); border: 1px solid var(--line);
+      color: var(--text); border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 13px;
+    }
+    .search:focus { outline: none; border-color: var(--accent); }
+    .chat-list, .member-list { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
+
+    .chat-row {
+      display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 10px; cursor: pointer;
+      transition: background 0.15s; text-align: start; width: 100%; border: 0; background: transparent; color: var(--text); font: inherit;
+    }
+    .chat-row:hover { background: var(--panel-2); }
+    .chat-row.active { background: rgba(34, 197, 94, 0.12); }
+    .chat-avatar { width: 34px; height: 34px; border-radius: 10px; flex: none; display: grid; place-items: center; background: var(--panel-2); color: var(--muted); }
+    .chat-row.active .chat-avatar { color: var(--accent); }
+    .chat-avatar svg { width: 18px; height: 18px; }
+    .chat-meta { min-width: 0; flex: 1; }
+    .chat-name { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+    .members-head { padding: 14px 16px 8px; border-bottom: 1px solid var(--line); }
+    .mc-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+    .mc-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+    .chk { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
+    .chk input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+    .mc-take { display: inline-flex; align-items: center; gap: 7px; }
+    .mc-take input { width: 64px; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 12.5px; }
+    .mc-take button {
+      min-height: 32px; padding: 6px 12px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line);
+      color: var(--text); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    .mc-take button:hover { background: #26364f; }
+    .mc-hidden { font-size: 11.5px; color: var(--warn); margin-top: 8px; }
+
+    .member-row { display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 9px; cursor: pointer; transition: background 0.15s; }
+    .member-row:hover { background: var(--panel-2); }
+    .member-row input { width: 16px; height: 16px; accent-color: var(--accent); flex: none; cursor: pointer; }
+    .member-info { min-width: 0; }
+    .member-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .member-num { font-size: 11.5px; color: var(--muted); margin-top: 1px; direction: ltr; unicode-bidi: plaintext; }
+    .member-empty, .pane-loading { color: #56697d; font-size: 12.5px; text-align: center; padding: 30px 16px; }
+
+    .modal-foot { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-top: 1px solid var(--line); }
+    .modal-foot #selInfo { font-size: 12.5px; color: var(--muted); }
+    .modal-foot .btn-primary { margin-inline-start: auto; flex: none; }
+
+    /* ---------- Groups & contacts section ---------- */
+    .span-2 { grid-column: 1 / -1; }
+    .gc-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+    .gc-head h2 { margin: 0 0 5px; font-size: 15.5px; font-weight: 600; }
+    .gc-head .hint { margin: 0; max-width: 620px; }
+    #loadChatsBtn { margin-inline-start: auto; flex: none; min-height: 40px; padding: 9px 15px; font-size: 13px; }
+    .gc-empty {
+      color: var(--muted); font-size: 13px; text-align: center; padding: 34px 16px;
+      background: var(--panel-2); border: 1px dashed var(--line); border-radius: 12px;
+    }
+    .gc-panes { display: grid; grid-template-columns: 330px 1fr; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel-2); }
+    .gc-panes .pane-chats { border-inline-end: 1px solid var(--line); background: rgba(15, 23, 42, 0.45); }
+    .gc-panes .chat-list, .gc-panes .member-list { height: 340px; }
+    .gc-foot { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
+    .gc-foot #selInfo { font-size: 13px; color: var(--accent); font-weight: 600; }
+    .gc-foot .btn-primary { margin-inline-start: auto; flex: none; min-width: 200px; }
+    .spinner {
+      width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--accent);
+      border-radius: 50%; display: inline-block; vertical-align: -3px; margin-inline-end: 9px; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) {
+      .modal-body { grid-template-columns: 1fr; }
+      .gc-panes { grid-template-columns: 1fr; }
+      .gc-panes .pane-chats { border-inline-end: 0; border-bottom: 1px solid var(--line); }
+      .gc-panes .chat-list { height: 220px; }
+      .pane-chats { border-inline-end: 0; border-bottom: 1px solid var(--line); max-height: 40%; }
+    }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   </style>
 </head>
@@ -247,6 +356,51 @@
       </div>
       <div id="logBox"><div class="empty-log" data-i18n="logEmpty">Live activity will appear here.</div></div>
     </section>
+
+    <!-- Groups & contacts: browse chats, pick members, add their numbers above -->
+    <section class="card span-2" id="groupsCard">
+      <div class="gc-head">
+        <div>
+          <h2 data-i18n="gcTitle">Groups and contacts</h2>
+          <p class="hint" data-i18n="gcHint">Load your WhatsApp groups, pick the members you want, and add their numbers to the recipients list above.</p>
+        </div>
+        <button type="button" class="btn-ghost" id="loadChatsBtn" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <span data-i18n="refresh">Refresh</span>
+        </button>
+      </div>
+
+      <div class="gc-empty" id="gcNotReady" data-i18n="gcNotReady">Connect WhatsApp above to load your groups and contacts.</div>
+
+      <div class="gc-panes" id="gcPanes" hidden>
+        <div class="pane pane-chats">
+          <input class="search" id="chatSearch" data-i18n-ph="searchPh" />
+          <div class="chat-list" id="chatList"></div>
+        </div>
+        <div class="pane pane-members">
+          <div class="members-head" id="membersHead" hidden>
+            <div class="mc-title" id="mcGroupName"></div>
+            <div class="mc-row">
+              <label class="chk"><input type="checkbox" id="selectAll" /><span data-i18n="selectAll">Select all</span></label>
+              <span class="mc-take">
+                <span data-i18n="takeFirst">Take first</span>
+                <input type="number" id="takeN" min="1" value="20" />
+                <button type="button" id="takeBtn" data-i18n="take">Take</button>
+              </span>
+            </div>
+            <div class="mc-hidden" id="mcHidden"></div>
+          </div>
+          <div class="member-list" id="memberList">
+            <div class="member-empty" data-i18n="pickGroup">Select a group or contact on the side to see its numbers.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gc-foot" id="gcFoot" hidden>
+        <span id="selInfo"></span>
+        <button class="btn-primary" id="addSelected" disabled data-i18n="addToListEmpty">Add to list</button>
+      </div>
+    </section>
   </main>
 
   <script>
@@ -286,6 +440,26 @@
         sendBtn: 'Send messages', stopBtn: 'Stop',
         progressLabel: 'Progress', sentLabel: 'Sent', failedLabel: 'Failed', totalLabel: 'Total',
         logEmpty: 'Live activity will appear here.',
+        gcTitle: 'Groups and contacts',
+        gcHint: 'Load your WhatsApp groups, pick the members you want, and add their numbers to the recipients list above.',
+        gcNotReady: 'Connect WhatsApp above to load your groups and contacts.',
+        refresh: 'Refresh',
+        added: (n) => 'Added ' + n + ' to the list',
+        searchPh: 'Search groups and contacts…',
+        loadingChats: 'Loading your chats…',
+        noChats: 'No results.',
+        pickGroup: 'Select a group or contact on the side to see its numbers.',
+        loadingMembers: 'Loading members…',
+        importError: 'Could not load. Make sure WhatsApp is connected.',
+        selectAll: 'Select all',
+        takeFirst: 'Take first',
+        take: 'Take',
+        addToListEmpty: 'Add to list',
+        groupWord: 'group',
+        membersWord: (n) => n + (n === 1 ? ' member' : ' members'),
+        selectedFrom: (n, g) => n + ' selected from ' + g,
+        addToList: (n) => 'Add ' + n + ' to list',
+        hiddenNote: (n) => n + (n === 1 ? ' member is' : ' members are') + ' hidden by WhatsApp privacy and cannot be added.',
         recip: (n) => n + (n === 1 ? ' recipient' : ' recipients'),
         eta: (s) => '~' + s + 's total',
         sendError: {
@@ -340,6 +514,26 @@
         sendBtn: 'إرسال الرسائل', stopBtn: 'إيقاف',
         progressLabel: 'التقدّم', sentLabel: 'أُرسلت', failedLabel: 'فشلت', totalLabel: 'الإجمالي',
         logEmpty: 'سيظهر النشاط المباشر هنا.',
+        gcTitle: 'المجموعات وجهات الاتصال',
+        gcHint: 'حمّل مجموعات واتساب، اختر الأعضاء الذين تريدهم، وأضف أرقامهم إلى قائمة المستلمين بالأعلى.',
+        gcNotReady: 'اتصل بواتساب بالأعلى لتحميل مجموعاتك وجهات اتصالك.',
+        refresh: 'تحديث',
+        added: (n) => 'أُضيف ' + n + ' إلى القائمة',
+        searchPh: 'ابحث في المجموعات وجهات الاتصال…',
+        loadingChats: 'جارٍ تحميل محادثاتك…',
+        noChats: 'لا توجد نتائج.',
+        pickGroup: 'اختر مجموعة أو جهة اتصال من الجانب لعرض أرقامها.',
+        loadingMembers: 'جارٍ تحميل الأعضاء…',
+        importError: 'تعذّر التحميل. تأكد من اتصال واتساب.',
+        selectAll: 'تحديد الكل',
+        takeFirst: 'خذ أول',
+        take: 'خذ',
+        addToListEmpty: 'أضف إلى القائمة',
+        groupWord: 'مجموعة',
+        membersWord: (n) => n + ' عضو',
+        selectedFrom: (n, g) => n + ' محدد من ' + g,
+        addToList: (n) => 'أضف ' + n + ' إلى القائمة',
+        hiddenNote: (n) => n + ' عضوًا مخفيون بسبب خصوصية واتساب ولا يمكن إضافتهم.',
         recip: (n) => 'المستلمون: ' + n,
         eta: (s) => '~' + s + ' ثانية إجمالًا',
         sendError: {
@@ -383,15 +577,20 @@
       document.title = d.appTitle;
       document.querySelectorAll('[data-i18n]').forEach((el) => {
         const key = el.getAttribute('data-i18n');
-        if (d[key] !== undefined) el.textContent = d[key];
+        if (typeof d[key] === 'string') el.textContent = d[key];
       });
       document.querySelectorAll('[data-i18n-ph]').forEach((el) => {
         const key = el.getAttribute('data-i18n-ph');
-        if (d[key] !== undefined) el.placeholder = d[key];
+        if (typeof d[key] === 'string') el.placeholder = d[key];
       });
       $('langLabel').textContent = d.langLabel;
       renderConn();
       updateCount();
+      if (chatsLoaded) {
+        renderChats();
+        if (curChatId) { $('mcGroupName').textContent = curGroupName; renderMembers(); }
+        updateSelInfo();
+      }
     }
 
     function renderConn() {
@@ -400,6 +599,13 @@
       $('statusDot').className = 'dot ' + currentState;
       $('statusText').textContent = d['state_' + currentState] || currentState;
       $('sendBtn').disabled = currentState !== 'ready' || (currentJob && currentJob.running);
+      if (currentState === 'ready') {
+        showPanes(true);
+        if (!chatsLoaded && !chatsLoading) loadChats();
+      } else {
+        showPanes(false);
+        if (currentState !== 'authenticating') chatsLoaded = false;
+      }
 
       if (currentState === 'qr' && currentQr) {
         body.innerHTML =
@@ -514,6 +720,161 @@
       }
     };
     $('stopBtn').onclick = () => fetch('/api/stop', { method: 'POST' });
+
+    // ---- Import numbers from WhatsApp chats/groups ----
+    const IconGroup = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+    const IconUser = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+
+    let allChats = [];
+    let curMembers = [];
+    let curGroupName = '';
+    let curChatId = null;
+    let curSelected = new Set();
+    let chatsLoaded = false;
+    let chatsLoading = false;
+
+    function showPanes(show) {
+      $('gcNotReady').hidden = show;
+      $('gcPanes').hidden = !show;
+      $('gcFoot').hidden = !show;
+      $('loadChatsBtn').hidden = !show;
+    }
+
+    function loadChats() {
+      if (currentState !== 'ready' || chatsLoading) return;
+      chatsLoading = true;
+      $('loadChatsBtn').disabled = true;
+      $('chatSearch').value = '';
+      $('chatList').innerHTML = '<div class="pane-loading"><span class="spinner"></span>' + t().loadingChats + '</div>';
+      resetMembers();
+      fetch('/api/chats')
+        .then((r) => r.json())
+        .then((data) => { allChats = data.chats || []; chatsLoaded = true; renderChats(); })
+        .catch(() => { $('chatList').innerHTML = '<div class="pane-loading">' + t().importError + '</div>'; })
+        .finally(() => { chatsLoading = false; $('loadChatsBtn').disabled = false; });
+    }
+
+    function renderChats() {
+      const d = t();
+      const q = $('chatSearch').value.trim().toLowerCase();
+      const list = allChats.filter((c) => !q || c.name.toLowerCase().includes(q));
+      const box = $('chatList');
+      if (!list.length) { box.innerHTML = '<div class="pane-loading">' + d.noChats + '</div>'; return; }
+      box.innerHTML = '';
+      for (const c of list) {
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'chat-row' + (c.id === curChatId ? ' active' : '');
+        row.innerHTML =
+          '<span class="chat-avatar">' + (c.isGroup ? IconGroup : IconUser) + '</span>' +
+          '<span class="chat-meta"><div class="chat-name"></div><div class="chat-sub"></div></span>';
+        row.querySelector('.chat-name').textContent = c.name;
+        row.querySelector('.chat-sub').textContent = c.isGroup ? d.groupWord + ' · ' + d.membersWord(c.count) : '+' + c.id.replace(/@.*/, '');
+        row.onclick = () => loadMembers(c);
+        box.appendChild(row);
+      }
+    }
+
+    function resetMembers() {
+      curMembers = []; curSelected = new Set(); curGroupName = ''; curChatId = null;
+      $('membersHead').hidden = true;
+      $('memberList').innerHTML = '<div class="member-empty">' + t().pickGroup + '</div>';
+      $('selectAll').checked = false;
+      $('mcHidden').textContent = '';
+      updateSelInfo();
+    }
+
+    function loadMembers(chat) {
+      curChatId = chat.id; curGroupName = chat.name; curSelected = new Set();
+      renderChats();
+      $('membersHead').hidden = false;
+      $('mcGroupName').textContent = chat.name;
+      $('selectAll').checked = false;
+      $('mcHidden').textContent = '';
+      $('memberList').innerHTML = '<div class="pane-loading"><span class="spinner"></span>' + t().loadingMembers + '</div>';
+      fetch('/api/participants?id=' + encodeURIComponent(chat.id))
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.error) throw new Error(data.error);
+          curMembers = data.members || [];
+          if (data.hidden) $('mcHidden').textContent = t().hiddenNote(data.hidden);
+          renderMembers();
+          updateSelInfo();
+        })
+        .catch(() => { $('memberList').innerHTML = '<div class="pane-loading">' + t().importError + '</div>'; });
+    }
+
+    function renderMembers() {
+      const box = $('memberList');
+      if (!curMembers.length) { box.innerHTML = '<div class="member-empty">' + t().noChats + '</div>'; return; }
+      box.innerHTML = '';
+      curMembers.forEach((m) => {
+        const row = document.createElement('label');
+        row.className = 'member-row';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = curSelected.has(m.number);
+        cb.onchange = () => { cb.checked ? curSelected.add(m.number) : curSelected.delete(m.number); syncSelectAll(); updateSelInfo(); };
+        const info = document.createElement('span');
+        info.className = 'member-info';
+        const nm = document.createElement('div');
+        nm.className = 'member-name';
+        nm.textContent = m.name || m.number;
+        const nu = document.createElement('div');
+        nu.className = 'member-num';
+        nu.textContent = '+' + m.number;
+        info.append(nm, nu);
+        row.append(cb, info);
+        box.appendChild(row);
+      });
+    }
+
+    function syncSelectAll() {
+      $('selectAll').checked = curMembers.length > 0 && curSelected.size === curMembers.length;
+    }
+    function updateSelInfo() {
+      const d = t();
+      const n = curSelected.size;
+      $('selInfo').textContent = n ? d.selectedFrom(n, curGroupName) : '';
+      const btn = $('addSelected');
+      btn.disabled = n === 0;
+      btn.textContent = n ? d.addToList(n) : d.addToListEmpty;
+    }
+
+    $('selectAll').onchange = () => {
+      if ($('selectAll').checked) curMembers.forEach((m) => curSelected.add(m.number));
+      else curSelected.clear();
+      renderMembers(); updateSelInfo();
+    };
+    $('takeBtn').onclick = () => {
+      const n = Math.max(0, Number($('takeN').value) || 0);
+      curSelected = new Set(curMembers.slice(0, n).map((m) => m.number));
+      renderMembers(); syncSelectAll(); updateSelInfo();
+    };
+    $('addSelected').onclick = () => {
+      const existing = new Set($('numbers').value.split('\n').map((l) => l.split(/[,|]/)[0].replace(/\D/g, '')).filter(Boolean));
+      const lines = [];
+      for (const m of curMembers) {
+        if (!curSelected.has(m.number) || existing.has(m.number)) continue;
+        existing.add(m.number);
+        const safeName = (m.name || '').replace(/[,|]/g, ' ').replace(/\s+/g, ' ').trim();
+        lines.push(safeName ? m.number + ', ' + safeName : m.number);
+      }
+      if (lines.length) {
+        const cur = $('numbers').value.replace(/\s*$/, '');
+        $('numbers').value = (cur ? cur + '\n' : '') + lines.join('\n') + '\n';
+        updateCount();
+      }
+      const added = lines.length;
+      curSelected = new Set();
+      $('selectAll').checked = false;
+      renderMembers();
+      updateSelInfo();
+      $('selInfo').textContent = t().added(added);
+    };
+
+    $('loadChatsBtn').onclick = loadChats;
+    $('chatSearch').addEventListener('input', renderChats);
 
     applyLang();
   </script>

@@ -3,7 +3,7 @@
 <p align="center">Send one message to many contacts, with a natural pause between each. Through WhatsApp Web. No API, no cost.</p>
 
 <p align="center">
-  <a href="https://github.com/Mohammed3382/auto-whatsapp-messager/releases/download/v1.0.0/AutoWhatsAppMessager-1.0.0.exe">
+  <a href="https://github.com/Mohammed3382/auto-whatsapp-messager/releases/download/v1.1.0/AutoWhatsAppMessager-1.1.0.exe">
     <img src="https://img.shields.io/badge/Download-Windows%20app%20(.exe)-22c55e?style=for-the-badge&logo=windows&logoColor=white" alt="Download the Windows app" height="46">
   </a>
 </p>
@@ -21,6 +21,10 @@
 You only scan once. Your login stays saved on the laptop.
 
 Add a name after a comma to personalize, like `905551234567, Ahmet`, and put `{name}` in your message.
+
+### Pull numbers from your groups
+
+The **Groups and contacts** section loads your WhatsApp groups once you are connected. Pick a group, select the members you want (or "Take first N"), and click Add to drop their numbers, already formatted with country code, into the recipients list. Some members are kept private by WhatsApp and cannot be added; the app tells you how many.
 
 ---
 
