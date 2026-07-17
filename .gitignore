@@ -6,3 +6,7 @@ dist/
 .playwright-mcp/
 *.png
 *.log
+
+# signing (never commit private keys)
+build/*.pfx
+build/*.p12

@@ -75,8 +75,13 @@
     /* ---------- Layout ---------- */
     main {
       max-width: 1080px; margin: 0 auto; padding: 24px;
-      display: grid; grid-template-columns: 350px 1fr; gap: 20px;
+      display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start;
+      grid-template-areas: "warn warn" "conn compose" "groups compose";
     }
+    .warnbar { grid-area: warn; }
+    #connCard { grid-area: conn; }
+    #composeCard { grid-area: compose; }
+    #groupsCard { grid-area: groups; }
     .card {
       background: var(--panel); border: 1px solid var(--line);
       border-radius: var(--radius); padding: 22px;
@@ -152,7 +157,7 @@
 
     #logBox {
       background: #060d18; border: 1px solid var(--line); border-radius: 12px;
-      height: 210px; overflow-y: auto; padding: 10px 12px;
+      height: 168px; overflow-y: auto; padding: 10px 12px;
       font-size: 12.5px; line-height: 1.7;
     }
     .log-line { display: flex; align-items: flex-start; gap: 8px; }
@@ -255,9 +260,12 @@
       color: var(--muted); font-size: 13px; text-align: center; padding: 34px 16px;
       background: var(--panel-2); border: 1px dashed var(--line); border-radius: 12px;
     }
-    .gc-panes { display: grid; grid-template-columns: 330px 1fr; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel-2); }
-    .gc-panes .pane-chats { border-inline-end: 1px solid var(--line); background: rgba(15, 23, 42, 0.45); }
-    .gc-panes .chat-list, .gc-panes .member-list { height: 340px; }
+    .gc-panes { display: grid; grid-template-columns: 1fr; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel-2); }
+    .gc-panes .pane-chats { border-bottom: 1px solid var(--line); background: rgba(15, 23, 42, 0.45); }
+    .gc-panes .chat-list { height: 232px; }
+    .gc-panes .member-list { height: 300px; }
+    .chat-foot { padding: 9px 12px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); text-align: center; }
+    .chat-foot:empty { display: none; }
     .gc-foot { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
     .gc-foot #selInfo { font-size: 13px; color: var(--accent); font-weight: 600; }
     .gc-foot .btn-primary { margin-inline-start: auto; flex: none; min-width: 200px; }
@@ -267,13 +275,8 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
-    @media (max-width: 720px) {
-      .modal-body { grid-template-columns: 1fr; }
-      .gc-panes { grid-template-columns: 1fr; }
-      .gc-panes .pane-chats { border-inline-end: 0; border-bottom: 1px solid var(--line); }
-      .gc-panes .chat-list { height: 220px; }
-      .pane-chats { border-inline-end: 0; border-bottom: 1px solid var(--line); max-height: 40%; }
+    @media (max-width: 880px) {
+      main { grid-template-columns: 1fr; grid-template-areas: "warn" "conn" "compose" "groups"; }
     }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   </style>
@@ -302,7 +305,7 @@
     </div>
 
     <!-- Connection -->
-    <section class="card">
+    <section class="card" id="connCard">
       <h2 data-i18n="connTitle">Connection</h2>
       <p class="hint" data-i18n="connHint">Link this app to your phone once. Your session is saved on this computer.</p>
       <div id="connBody">
@@ -311,7 +314,7 @@
     </section>
 
     <!-- Compose -->
-    <section class="card">
+    <section class="card" id="composeCard">
       <h2 data-i18n="composeTitle">Compose and send</h2>
       <p class="hint" data-i18n="composeHint">One number per line, with country code. You can add a name after a comma to personalize.</p>
 
@@ -358,7 +361,7 @@
     </section>
 
     <!-- Groups & contacts: browse chats, pick members, add their numbers above -->
-    <section class="card span-2" id="groupsCard">
+    <section class="card" id="groupsCard">
       <div class="gc-head">
         <div>
           <h2 data-i18n="gcTitle">Groups and contacts</h2>
@@ -376,6 +379,7 @@
         <div class="pane pane-chats">
           <input class="search" id="chatSearch" data-i18n-ph="searchPh" />
           <div class="chat-list" id="chatList"></div>
+          <div class="chat-foot" id="chatFoot"></div>
         </div>
         <div class="pane pane-members">
           <div class="members-head" id="membersHead" hidden>
@@ -428,7 +432,7 @@
         qrStep3: 'Point your phone at this code',
         connReady: 'Connected and ready to send.',
         connAuth: 'Signed in. Loading your chats…',
-        connDisconnected: 'Not connected. Close and reopen the app to reconnect.',
+        connDisconnected: 'Connection lost. Reconnecting…',
         logoutBtn: 'Log out',
         composeTitle: 'Compose and send',
         composeHint: 'One number per line, with country code. You can add a name after a comma to personalize.',
@@ -446,6 +450,7 @@
         refresh: 'Refresh',
         added: (n) => 'Added ' + n + ' to the list',
         searchPh: 'Search groups and contacts…',
+        showingCount: (shown, total) => 'Showing ' + shown + ' of ' + total + '. Search to narrow.',
         loadingChats: 'Loading your chats…',
         noChats: 'No results.',
         pickGroup: 'Select a group or contact on the side to see its numbers.',
@@ -475,6 +480,7 @@
           auth_failed: (d) => 'Sign-in failed: ' + d.msg,
           ready: () => 'WhatsApp is connected and ready.',
           disconnected: (d) => 'Disconnected: ' + d.reason,
+          reconnecting: () => 'Connection lost. Reconnecting…',
           wa_start_failed: (d) => 'Could not start WhatsApp: ' + d.msg,
           job_start: (d) => 'Starting: ' + d.count + ' contact(s), delay between ' + d.min + ' and ' + d.max + ' seconds.',
           stopped_by_user: () => 'Stopped by user.',
@@ -502,7 +508,7 @@
         qrStep3: 'وجّه كاميرا هاتفك نحو هذا الرمز',
         connReady: 'متصل وجاهز للإرسال.',
         connAuth: 'تم الدخول. جارٍ تحميل محادثاتك…',
-        connDisconnected: 'غير متصل. أغلق التطبيق ثم افتحه من جديد لإعادة الاتصال.',
+        connDisconnected: 'انقطع الاتصال. جارٍ إعادة الاتصال…',
         logoutBtn: 'تسجيل الخروج',
         composeTitle: 'اكتب وأرسِل',
         composeHint: 'رقم واحد في كل سطر مع رمز الدولة. يمكنك إضافة اسم بعد فاصلة لتخصيص الرسالة.',
@@ -520,6 +526,7 @@
         refresh: 'تحديث',
         added: (n) => 'أُضيف ' + n + ' إلى القائمة',
         searchPh: 'ابحث في المجموعات وجهات الاتصال…',
+        showingCount: (shown, total) => 'عرض ' + shown + ' من ' + total + '. ابحث للتصفية.',
         loadingChats: 'جارٍ تحميل محادثاتك…',
         noChats: 'لا توجد نتائج.',
         pickGroup: 'اختر مجموعة أو جهة اتصال من الجانب لعرض أرقامها.',
@@ -549,6 +556,7 @@
           auth_failed: (d) => 'فشل الدخول: ' + d.msg,
           ready: () => 'واتساب متصل وجاهز.',
           disconnected: (d) => 'انقطع الاتصال: ' + d.reason,
+          reconnecting: () => 'انقطع الاتصال. جارٍ إعادة الاتصال…',
           wa_start_failed: (d) => 'تعذّر تشغيل واتساب: ' + d.msg,
           job_start: (d) => 'بدء الإرسال إلى ' + d.count + ' جهة اتصال، بفاصل بين ' + d.min + ' و' + d.max + ' ثانية.',
           stopped_by_user: () => 'أوقفه المستخدم.',
@@ -604,7 +612,7 @@
         if (!chatsLoaded && !chatsLoading) loadChats();
       } else {
         showPanes(false);
-        if (currentState !== 'authenticating') chatsLoaded = false;
+        if (currentState !== 'authenticating') { chatsLoaded = false; allChats = []; }
       }
 
       if (currentState === 'qr' && currentQr) {
@@ -754,12 +762,15 @@
         .finally(() => { chatsLoading = false; $('loadChatsBtn').disabled = false; });
     }
 
+    const CHAT_LIMIT = 10;
     function renderChats() {
       const d = t();
       const q = $('chatSearch').value.trim().toLowerCase();
-      const list = allChats.filter((c) => !q || c.name.toLowerCase().includes(q));
+      const all = allChats.filter((c) => !q || String(c.name).toLowerCase().includes(q));
+      const list = all.slice(0, CHAT_LIMIT);
       const box = $('chatList');
-      if (!list.length) { box.innerHTML = '<div class="pane-loading">' + d.noChats + '</div>'; return; }
+      const foot = $('chatFoot');
+      if (!all.length) { box.innerHTML = '<div class="pane-loading">' + d.noChats + '</div>'; if (foot) foot.textContent = ''; return; }
       box.innerHTML = '';
       for (const c of list) {
         const row = document.createElement('button');
@@ -773,6 +784,7 @@
         row.onclick = () => loadMembers(c);
         box.appendChild(row);
       }
+      if (foot) foot.textContent = all.length > CHAT_LIMIT ? d.showingCount(list.length, all.length) : '';
     }
 
     function resetMembers() {

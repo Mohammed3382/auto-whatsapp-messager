@@ -22,53 +22,77 @@ function start(options = {}) {
 
   // -------------------------------------------------------------------------
   // State + WhatsApp client
+  //
+  // The client is rebuildable: logging out or losing the connection tears it
+  // down and starts a fresh one, so the UI recovers to a QR (or reconnects)
+  // instead of getting stuck in a stale state.
   // -------------------------------------------------------------------------
   let clientState = 'starting'; // starting | qr | authenticating | ready | disconnected | auth_failure
   let qrDataUrl = null;
+  let client = null;
+  let manualLogout = false;
+  let reconnectTimer = null;
 
-  const client = new Client({
-    authStrategy: new LocalAuth({ dataPath: DATA_PATH }),
-    puppeteer: {
-      headless: HEADLESS,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-    },
-  });
+  function buildClient() {
+    client = new Client({
+      authStrategy: new LocalAuth({ dataPath: DATA_PATH }),
+      puppeteer: {
+        headless: HEADLESS,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      },
+    });
 
-  client.on('qr', async (qr) => {
-    clientState = 'qr';
-    qrDataUrl = await qrcode.toDataURL(qr, { margin: 1, width: 320 });
-    broadcastState();
-    log('info', 'qr_ready');
-  });
-  client.on('authenticated', () => {
-    clientState = 'authenticating';
+    client.on('qr', async (qr) => {
+      clientState = 'qr';
+      qrDataUrl = await qrcode.toDataURL(qr, { margin: 1, width: 320 });
+      broadcastState();
+      log('info', 'qr_ready');
+    });
+    client.on('authenticated', () => {
+      clientState = 'authenticating';
+      qrDataUrl = null;
+      broadcastState();
+      log('info', 'authenticated');
+    });
+    client.on('auth_failure', (msg) => {
+      clientState = 'auth_failure';
+      broadcastState();
+      log('error', 'auth_failed', { msg: String(msg) });
+    });
+    client.on('ready', () => {
+      clientState = 'ready';
+      qrDataUrl = null;
+      broadcastState();
+      log('success', 'ready');
+    });
+    client.on('disconnected', (reason) => {
+      qrDataUrl = null;
+      clientState = 'disconnected';
+      broadcastState();
+      if (manualLogout) return; // logout flow rebuilds on its own
+      log('error', 'disconnected', { reason: String(reason) });
+      if (!reconnectTimer) {
+        reconnectTimer = setTimeout(() => { reconnectTimer = null; reconnect(); }, 3000);
+      }
+    });
+
+    client.initialize().catch((err) => {
+      clientState = 'disconnected';
+      log('error', 'wa_start_failed', { msg: err.message });
+      broadcastState();
+    });
+  }
+
+  async function reconnect() {
+    log('info', 'reconnecting');
+    clientState = 'starting';
     qrDataUrl = null;
     broadcastState();
-    log('info', 'authenticated');
-  });
-  client.on('auth_failure', (msg) => {
-    clientState = 'auth_failure';
-    broadcastState();
-    log('error', 'auth_failed', { msg: String(msg) });
-  });
-  client.on('ready', () => {
-    clientState = 'ready';
-    qrDataUrl = null;
-    broadcastState();
-    log('success', 'ready');
-  });
-  client.on('disconnected', (reason) => {
-    clientState = 'disconnected';
-    qrDataUrl = null;
-    broadcastState();
-    log('error', 'disconnected', { reason: String(reason) });
-  });
+    try { if (client) await client.destroy(); } catch (e) {}
+    buildClient();
+  }
 
-  client.initialize().catch((err) => {
-    clientState = 'disconnected';
-    log('error', 'wa_start_failed', { msg: err.message });
-    broadcastState();
-  });
+  buildClient();
 
   // -------------------------------------------------------------------------
   // Live updates (Server-Sent Events)
@@ -197,16 +221,17 @@ function start(options = {}) {
   });
 
   app.post('/api/logout', async (req, res) => {
-    try {
-      await client.logout();
-      clientState = 'disconnected';
-      qrDataUrl = null;
-      broadcastState();
-      log('info', 'logged_out');
-      res.json({ ok: true });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
+    manualLogout = true;
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    clientState = 'starting';
+    qrDataUrl = null;
+    broadcastState();
+    log('info', 'logged_out');
+    try { await client.logout(); } catch (e) {}
+    try { await client.destroy(); } catch (e) {}
+    manualLogout = false;
+    buildClient(); // fresh session -> shows a new QR to link a phone
+    res.json({ ok: true });
   });
 
   // -------------------------------------------------------------------------

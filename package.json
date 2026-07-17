@@ -1,14 +1,15 @@
 {
   "name": "auto-whatsapp-messager",
-  "version": "1.1.0",
-  "description": "Send one message to a list of WhatsApp contacts automatically, with human-like delays, via WhatsApp Web (no API). Ships as a portable desktop app.",
+  "version": "1.2.0",
+  "description": "Send one message to a list of WhatsApp contacts automatically, with human-like delays, via WhatsApp Web (no API). Bilingual desktop app.",
   "main": "main.js",
-  "author": "",
+  "author": "Auto WhatsApp Messager",
   "license": "MIT",
   "scripts": {
     "start": "node server.js",
     "dev": "electron .",
-    "dist": "electron-builder --win portable"
+    "icon": "node build/gen-icon.js",
+    "dist": "electron-builder --win nsis"
   },
   "dependencies": {
     "express": "^4.21.2",
@@ -17,11 +18,13 @@
   },
   "devDependencies": {
     "electron": "^33.2.1",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "png-to-ico": "^2.1.8"
   },
   "build": {
     "appId": "com.autowa.messager",
     "productName": "Auto WhatsApp Messager",
+    "copyright": "Auto WhatsApp Messager",
     "files": [
       "main.js",
       "server.js",
@@ -34,10 +37,19 @@
       }
     ],
     "win": {
-      "target": "portable"
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "publisherName": "Auto WhatsApp Messager"
     },
-    "portable": {
-      "artifactName": "AutoWhatsAppMessager-${version}.exe"
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Auto WhatsApp Messager",
+      "artifactName": "AutoWhatsAppMessager-Setup-${version}.exe",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true
     }
   }
 }
