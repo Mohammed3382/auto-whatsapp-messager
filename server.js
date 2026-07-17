@@ -7,9 +7,10 @@
 // English or Arabic. See public/index.html for the message templates.
 
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const qrcode = require('qrcode');
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 
 function start(options = {}) {
   const PORT = options.port || process.env.PORT || 3000;
@@ -17,7 +18,7 @@ function start(options = {}) {
   const HEADLESS = process.env.HEADLESS !== 'false';
 
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '32mb' })); // room for a base64 image/file attachment
   app.use(express.static(path.join(__dirname, 'public')));
 
   // -------------------------------------------------------------------------
@@ -32,6 +33,7 @@ function start(options = {}) {
   let client = null;
   let manualLogout = false;
   let reconnectTimer = null;
+  let lastReady = false; // true only after a successful connection, so we never auto-reconnect mid-login
 
   function buildClient() {
     client = new Client({
@@ -62,6 +64,7 @@ function start(options = {}) {
     client.on('ready', () => {
       clientState = 'ready';
       qrDataUrl = null;
+      lastReady = true;
       broadcastState();
       log('success', 'ready');
     });
@@ -69,9 +72,13 @@ function start(options = {}) {
       qrDataUrl = null;
       clientState = 'disconnected';
       broadcastState();
-      if (manualLogout) return; // logout flow rebuilds on its own
+      if (manualLogout) return; // logout/refresh flows rebuild on their own
       log('error', 'disconnected', { reason: String(reason) });
-      if (!reconnectTimer) {
+      // Only auto-reconnect a connection that was actually live. A disconnect
+      // during the QR/scan phase must NOT trigger a rebuild, or it aborts login.
+      const wasReady = lastReady;
+      lastReady = false;
+      if (wasReady && !reconnectTimer) {
         reconnectTimer = setTimeout(() => { reconnectTimer = null; reconnect(); }, 3000);
       }
     });
@@ -87,8 +94,34 @@ function start(options = {}) {
     log('info', 'reconnecting');
     clientState = 'starting';
     qrDataUrl = null;
+    lastReady = false;
     broadcastState();
     try { if (client) await client.destroy(); } catch (e) {}
+    buildClient();
+  }
+
+  // Delete the saved session so the next QR links cleanly. Retries a few times
+  // because Windows can briefly hold file locks after the browser closes.
+  async function clearSession() {
+    for (let i = 0; i < 6; i++) {
+      try { fs.rmSync(DATA_PATH, { recursive: true, force: true }); return true; }
+      catch (e) { await new Promise((r) => setTimeout(r, 600)); }
+    }
+    return false;
+  }
+
+  // Full reset: tear down the client, wipe any stale/half-linked session, and
+  // start fresh so a working QR appears. Backs the "Refresh QR" button.
+  async function refresh({ clear }) {
+    manualLogout = true; // suppress the auto-reconnect path during teardown
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    clientState = 'starting';
+    qrDataUrl = null;
+    lastReady = false;
+    broadcastState();
+    try { if (client) await client.destroy(); } catch (e) {}
+    if (clear) await clearSession();
+    manualLogout = false;
     buildClient();
   }
 
@@ -149,11 +182,24 @@ function start(options = {}) {
     return { digits, name };
   }
 
+  // Fill {name}. With no name, drop the placeholder AND tidy the leftover
+  // space/punctuation so "Hi {name}!" becomes "Hi!" (not "Hi  !").
+  function personalize(message, name) {
+    if (name) return message.replace(/\{name\}/gi, name);
+    return message
+      .replace(/\s*\{name\}\s*/gi, ' ')
+      .replace(/[ \t]+([,.!?;:،؛])/g, '$1')
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/[ \t]+\n/g, '\n')
+      .trim();
+  }
+
   app.post('/api/send', async (req, res) => {
     if (clientState !== 'ready') return res.status(409).json({ error: 'not_connected' });
     if (job && job.running) return res.status(409).json({ error: 'already_running' });
 
     const message = (req.body.message || '').toString();
+    const att = req.body.attachment; // { data: base64 (no prefix), mimetype, filename } | undefined
     let minDelay = Number(req.body.minDelaySec);
     let maxDelay = Number(req.body.maxDelaySec);
     if (!Number.isFinite(minDelay) || minDelay < 1) minDelay = 4;
@@ -167,8 +213,16 @@ function start(options = {}) {
       .map(parseLine)
       .filter((c) => c.digits.length >= 7);
 
-    if (!message.trim()) return res.status(400).json({ error: 'empty_message' });
+    if (!message.trim() && !(att && att.data)) return res.status(400).json({ error: 'empty_message' });
     if (contacts.length === 0) return res.status(400).json({ error: 'no_numbers' });
+
+    // Build the attachment once and reuse it for every contact.
+    let media = null;
+    let asDocument = false;
+    if (att && att.data && att.mimetype) {
+      media = new MessageMedia(att.mimetype, att.data, att.filename || 'file');
+      asDocument = !/^image\//.test(att.mimetype) && !/^video\//.test(att.mimetype);
+    }
 
     job = { total: contacts.length, sent: 0, failed: 0, done: false, running: true, stop: false };
     res.json({ ok: true, total: contacts.length });
@@ -179,7 +233,7 @@ function start(options = {}) {
     for (let i = 0; i < contacts.length; i++) {
       if (job.stop) { log('info', 'stopped_by_user'); break; }
       const { digits, name } = contacts[i];
-      const personalized = message.replace(/\{name\}/gi, name || '');
+      const personalized = personalize(message, name);
       const label = name ? `${name} (${digits})` : digits;
 
       try {
@@ -188,7 +242,11 @@ function start(options = {}) {
           job.failed++;
           log('error', 'not_on_wa', { label });
         } else {
-          await client.sendMessage(numberId._serialized, personalized);
+          if (media) {
+            await client.sendMessage(numberId._serialized, media, { caption: personalized, sendMediaAsDocument: asDocument });
+          } else {
+            await client.sendMessage(numberId._serialized, personalized);
+          }
           job.sent++;
           log('success', 'sent_ok', { label });
         }
@@ -221,16 +279,17 @@ function start(options = {}) {
   });
 
   app.post('/api/logout', async (req, res) => {
-    manualLogout = true;
-    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-    clientState = 'starting';
-    qrDataUrl = null;
-    broadcastState();
     log('info', 'logged_out');
-    try { await client.logout(); } catch (e) {}
-    try { await client.destroy(); } catch (e) {}
-    manualLogout = false;
-    buildClient(); // fresh session -> shows a new QR to link a phone
+    try { if (client) await client.logout(); } catch (e) {} // unlink on WhatsApp's side
+    await refresh({ clear: true }); // wipe local session, rebuild -> fresh QR
+    res.json({ ok: true });
+  });
+
+  // Refresh QR: full clean reset so a working QR appears (also clears a stale
+  // or half-linked session that blocks logging in).
+  app.post('/api/refresh', async (req, res) => {
+    log('info', 'refreshing');
+    await refresh({ clear: clientState !== 'ready' });
     res.json({ ok: true });
   });
 

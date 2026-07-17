@@ -1,6 +1,6 @@
 {
   "name": "auto-whatsapp-messager",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Send one message to a list of WhatsApp contacts automatically, with human-like delays, via WhatsApp Web (no API). Bilingual desktop app.",
   "main": "main.js",
   "author": "Auto WhatsApp Messager",

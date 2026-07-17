@@ -38,9 +38,10 @@
 
     /* ---------- Header ---------- */
     header {
-      display: flex; align-items: center; gap: 14px;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap; row-gap: 10px;
       padding: 18px 26px; border-bottom: 1px solid var(--line);
       background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(8px);
+      position: sticky; top: 0; z-index: 20;
     }
     .logo {
       width: 42px; height: 42px; border-radius: 12px; flex: none;
@@ -75,8 +76,8 @@
     /* ---------- Layout ---------- */
     main {
       max-width: 1080px; margin: 0 auto; padding: 24px;
-      display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start;
-      grid-template-areas: "warn warn" "conn compose" "groups compose";
+      display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start;
+      grid-template-areas: "warn warn" "conn compose" "groups groups";
     }
     .warnbar { grid-area: warn; }
     #connCard { grid-area: conn; }
@@ -183,6 +184,28 @@
     .import-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .import-btn svg { width: 15px; height: 15px; }
 
+    /* Attachment picker */
+    .attach-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .attach-btn {
+      display: inline-flex; align-items: center; gap: 8px; min-height: 38px;
+      background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+      border-radius: 10px; padding: 8px 13px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .attach-btn:hover { background: #26364f; }
+    .attach-btn svg { width: 16px; height: 16px; color: var(--muted); }
+    .attach-chip {
+      display: inline-flex; align-items: center; gap: 8px; max-width: 100%;
+      background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); color: var(--accent);
+      border-radius: 10px; padding: 7px 9px; font-size: 12.5px; font-weight: 600;
+    }
+    .attach-chip[hidden] { display: none; }
+    .attach-chip .chip-ic { width: 15px; height: 15px; flex: none; }
+    .attach-chip #attachName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+    .attach-chip #attachRemove { background: transparent; border: 0; color: var(--accent); cursor: pointer; padding: 2px; display: inline-flex; align-items: center; min-height: 0; }
+    .attach-chip #attachRemove:hover { color: var(--text); }
+    .attach-chip #attachRemove svg { width: 14px; height: 14px; }
+
     .modal-overlay {
       position: fixed; inset: 0; z-index: 50; background: rgba(2, 6, 23, 0.72);
       backdrop-filter: blur(4px); display: grid; place-items: center; padding: 20px;
@@ -260,12 +283,22 @@
       color: var(--muted); font-size: 13px; text-align: center; padding: 34px 16px;
       background: var(--panel-2); border: 1px dashed var(--line); border-radius: 12px;
     }
-    .gc-panes { display: grid; grid-template-columns: 1fr; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel-2); }
-    .gc-panes .pane-chats { border-bottom: 1px solid var(--line); background: rgba(15, 23, 42, 0.45); }
-    .gc-panes .chat-list { height: 232px; }
-    .gc-panes .member-list { height: 300px; }
-    .chat-foot { padding: 9px 12px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); text-align: center; }
+    .gc-panes { display: grid; grid-template-columns: 340px 1fr; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel-2); }
+    .gc-panes .pane-chats { border-inline-end: 1px solid var(--line); background: rgba(15, 23, 42, 0.45); }
+    .gc-panes .chat-list { height: 372px; }
+    .gc-panes .member-list { height: 430px; }
+    .chat-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px; border-top: 1px solid var(--line); }
     .chat-foot:empty { display: none; }
+    .pager-btn {
+      display: inline-flex; align-items: center; gap: 5px; min-height: 32px;
+      background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+      border-radius: 8px; padding: 6px 11px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .pager-btn:hover:not(:disabled) { background: #26364f; }
+    .pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .pager-btn svg { width: 13px; height: 13px; }
+    .pager-info { font-size: 12px; color: var(--muted); white-space: nowrap; }
     .gc-foot { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
     .gc-foot #selInfo { font-size: 13px; color: var(--accent); font-weight: 600; }
     .gc-foot .btn-primary { margin-inline-start: auto; flex: none; min-width: 200px; }
@@ -277,6 +310,22 @@
 
     @media (max-width: 880px) {
       main { grid-template-columns: 1fr; grid-template-areas: "warn" "conn" "compose" "groups"; }
+    }
+    @media (max-width: 760px) {
+      .gc-panes { grid-template-columns: 1fr; }
+      .gc-panes .pane-chats { border-inline-end: 0; border-bottom: 1px solid var(--line); }
+      .gc-panes .chat-list { height: 240px; }
+      .gc-panes .member-list { height: 300px; }
+    }
+    @media (max-width: 600px) {
+      header { padding: 14px 16px; }
+      .titles p { display: none; }
+      main { padding: 14px; gap: 14px; }
+      .card { padding: 16px; }
+      #qrImg { width: 100%; max-width: 240px; }
+      .row { flex-direction: column; }
+      .gc-panes .member-list { height: 260px; }
+      .btn-primary, .btn-ghost, .btn-danger { flex: 1; }
     }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   </style>
@@ -326,6 +375,21 @@
         <span class="sub" data-i18n="messageHintName">(use {name} to insert the name)</span>
       </label>
       <textarea id="message" data-i18n-ph="messagePh"></textarea>
+
+      <div class="attach-row">
+        <input type="file" id="fileInput" hidden accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip" />
+        <button type="button" class="attach-btn" id="attachBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          <span data-i18n="attachBtn">Attach image or file</span>
+        </button>
+        <div class="attach-chip" id="attachChip" hidden>
+          <svg class="chip-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/></svg>
+          <span id="attachName"></span>
+          <button type="button" id="attachRemove" aria-label="Remove attachment">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
 
       <div class="row">
         <div>
@@ -434,12 +498,16 @@
         connAuth: 'Signed in. Loading your chats…',
         connDisconnected: 'Connection lost. Reconnecting…',
         logoutBtn: 'Log out',
+        refreshQr: 'Refresh QR code',
+        reconnectBtn: 'Reconnect',
         composeTitle: 'Compose and send',
         composeHint: 'One number per line, with country code. You can add a name after a comma to personalize.',
         recipientsLabel: 'Recipients',
         recipientsPh: '905551234567, Ahmet\n15551234567, Sara\n447700900123',
         messageLabel: 'Message', messageHintName: '(use {name} to insert the name)',
         messagePh: 'Hi {name}! Reminder about our study group tomorrow at 3pm.',
+        attachBtn: 'Attach image or file',
+        fileTooBig: 'File is too large. Max 16 MB.',
         minDelayLabel: 'Min delay (seconds)', maxDelayLabel: 'Max delay (seconds)',
         sendBtn: 'Send messages', stopBtn: 'Stop',
         progressLabel: 'Progress', sentLabel: 'Sent', failedLabel: 'Failed', totalLabel: 'Total',
@@ -450,7 +518,9 @@
         refresh: 'Refresh',
         added: (n) => 'Added ' + n + ' to the list',
         searchPh: 'Search groups and contacts…',
-        showingCount: (shown, total) => 'Showing ' + shown + ' of ' + total + '. Search to narrow.',
+        prevPage: 'Previous',
+        nextPage: 'Next',
+        pageOf: (cur, total) => 'Page ' + cur + ' of ' + total,
         loadingChats: 'Loading your chats…',
         noChats: 'No results.',
         pickGroup: 'Select a group or contact on the side to see its numbers.',
@@ -470,7 +540,7 @@
         sendError: {
           not_connected: 'WhatsApp is not connected yet.',
           already_running: 'A send is already in progress.',
-          empty_message: 'The message is empty.',
+          empty_message: 'Add a message or attach a file.',
           no_numbers: 'No valid numbers found.',
           generic: 'Could not start sending.',
         },
@@ -481,6 +551,7 @@
           ready: () => 'WhatsApp is connected and ready.',
           disconnected: (d) => 'Disconnected: ' + d.reason,
           reconnecting: () => 'Connection lost. Reconnecting…',
+          refreshing: () => 'Refreshing…',
           wa_start_failed: (d) => 'Could not start WhatsApp: ' + d.msg,
           job_start: (d) => 'Starting: ' + d.count + ' contact(s), delay between ' + d.min + ' and ' + d.max + ' seconds.',
           stopped_by_user: () => 'Stopped by user.',
@@ -510,12 +581,16 @@
         connAuth: 'تم الدخول. جارٍ تحميل محادثاتك…',
         connDisconnected: 'انقطع الاتصال. جارٍ إعادة الاتصال…',
         logoutBtn: 'تسجيل الخروج',
+        refreshQr: 'تحديث رمز QR',
+        reconnectBtn: 'إعادة الاتصال',
         composeTitle: 'اكتب وأرسِل',
         composeHint: 'رقم واحد في كل سطر مع رمز الدولة. يمكنك إضافة اسم بعد فاصلة لتخصيص الرسالة.',
         recipientsLabel: 'المستلمون',
         recipientsPh: '905551234567، أحمد\n15551234567، سارة\n447700900123',
         messageLabel: 'الرسالة', messageHintName: '(استخدم {name} لإدراج الاسم)',
         messagePh: 'مرحبًا {name}! تذكير بلقاء مجموعة الدراسة غدًا الساعة 3 مساءً.',
+        attachBtn: 'إرفاق صورة أو ملف',
+        fileTooBig: 'الملف كبير جدًا. الحد 16 ميغابايت.',
         minDelayLabel: 'أقل فاصل (ثوانٍ)', maxDelayLabel: 'أطول فاصل (ثوانٍ)',
         sendBtn: 'إرسال الرسائل', stopBtn: 'إيقاف',
         progressLabel: 'التقدّم', sentLabel: 'أُرسلت', failedLabel: 'فشلت', totalLabel: 'الإجمالي',
@@ -526,7 +601,9 @@
         refresh: 'تحديث',
         added: (n) => 'أُضيف ' + n + ' إلى القائمة',
         searchPh: 'ابحث في المجموعات وجهات الاتصال…',
-        showingCount: (shown, total) => 'عرض ' + shown + ' من ' + total + '. ابحث للتصفية.',
+        prevPage: 'السابق',
+        nextPage: 'التالي',
+        pageOf: (cur, total) => 'صفحة ' + cur + ' من ' + total,
         loadingChats: 'جارٍ تحميل محادثاتك…',
         noChats: 'لا توجد نتائج.',
         pickGroup: 'اختر مجموعة أو جهة اتصال من الجانب لعرض أرقامها.',
@@ -546,7 +623,7 @@
         sendError: {
           not_connected: 'واتساب غير متصل بعد.',
           already_running: 'هناك إرسال جارٍ بالفعل.',
-          empty_message: 'الرسالة فارغة.',
+          empty_message: 'أضف رسالة أو أرفق ملفًا.',
           no_numbers: 'لا توجد أرقام صالحة.',
           generic: 'تعذّر بدء الإرسال.',
         },
@@ -557,6 +634,7 @@
           ready: () => 'واتساب متصل وجاهز.',
           disconnected: (d) => 'انقطع الاتصال: ' + d.reason,
           reconnecting: () => 'انقطع الاتصال. جارٍ إعادة الاتصال…',
+          refreshing: () => 'جارٍ التحديث…',
           wa_start_failed: (d) => 'تعذّر تشغيل واتساب: ' + d.msg,
           job_start: (d) => 'بدء الإرسال إلى ' + d.count + ' جهة اتصال، بفاصل بين ' + d.min + ' و' + d.max + ' ثانية.',
           stopped_by_user: () => 'أوقفه المستخدم.',
@@ -618,12 +696,16 @@
       if (currentState === 'qr' && currentQr) {
         body.innerHTML =
           '<div id="qrWrap"><img id="qrImg" alt="WhatsApp QR code"/>' +
-          '<ol class="steps"><li></li><li></li><li></li></ol></div>';
+          '<ol class="steps"><li></li><li></li><li></li></ol>' +
+          '<div class="btns"><button class="btn-ghost" id="refreshQrBtn"></button></div></div>';
         $('qrImg').src = currentQr;
         const items = body.querySelectorAll('.steps li');
         items[0].append(d.qrStep1);
         items[1].append(d.qrStep2);
         items[2].append(d.qrStep3);
+        const rb = $('refreshQrBtn');
+        rb.textContent = d.refreshQr;
+        rb.onclick = () => { rb.disabled = true; fetch('/api/refresh', { method: 'POST' }); };
       } else if (currentState === 'ready') {
         body.innerHTML = '<p class="conn-msg"></p><div class="btns"><button class="btn-danger" id="logoutBtn"></button></div>';
         body.querySelector('.conn-msg').textContent = d.connReady;
@@ -634,8 +716,11 @@
         body.innerHTML = '<p class="conn-msg"></p>';
         body.querySelector('.conn-msg').textContent = d.connAuth;
       } else if (currentState === 'disconnected' || currentState === 'auth_failure') {
-        body.innerHTML = '<p class="conn-msg"></p>';
+        body.innerHTML = '<p class="conn-msg"></p><div class="btns"><button class="btn-ghost" id="reconnectBtn"></button></div>';
         body.querySelector('.conn-msg').textContent = d.connDisconnected;
+        const rc = $('reconnectBtn');
+        rc.textContent = d.reconnectBtn;
+        rc.onclick = () => { rc.disabled = true; fetch('/api/refresh', { method: 'POST' }); };
       } else {
         body.innerHTML = '<p class="conn-msg"></p>';
         body.querySelector('.conn-msg').textContent = d.connWaiting;
@@ -708,6 +793,28 @@
     };
     ['numbers', 'minDelay', 'maxDelay'].forEach((id) => $(id).addEventListener('input', updateCount));
 
+    // ---- Attachment (image / file sent with the message as caption) ----
+    let attachment = null; // { data: base64, mimetype, filename }
+    function renderAttach() {
+      const chip = $('attachChip');
+      if (attachment) { $('attachName').textContent = attachment.filename; chip.hidden = false; }
+      else { chip.hidden = true; $('fileInput').value = ''; }
+    }
+    $('attachBtn').onclick = () => $('fileInput').click();
+    $('attachRemove').onclick = () => { attachment = null; renderAttach(); };
+    $('fileInput').onchange = () => {
+      const f = $('fileInput').files[0];
+      if (!f) return;
+      if (f.size > 16 * 1024 * 1024) { pushLine('error', t().fileTooBig, Date.now()); $('fileInput').value = ''; return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result);
+        attachment = { data: dataUrl.slice(dataUrl.indexOf(',') + 1), mimetype: f.type || 'application/octet-stream', filename: f.name };
+        renderAttach();
+      };
+      reader.readAsDataURL(f);
+    };
+
     $('sendBtn').onclick = async () => {
       $('sendBtn').disabled = true;
       const r = await fetch('/api/send', {
@@ -716,6 +823,7 @@
         body: JSON.stringify({
           numbers: $('numbers').value,
           message: $('message').value,
+          attachment: attachment,
           minDelaySec: Number($('minDelay').value),
           maxDelaySec: Number($('maxDelay').value),
         }),
@@ -757,20 +865,29 @@
       resetMembers();
       fetch('/api/chats')
         .then((r) => r.json())
-        .then((data) => { allChats = data.chats || []; chatsLoaded = true; renderChats(); })
+        .then((data) => { allChats = data.chats || []; chatsLoaded = true; chatPage = 0; renderChats(); })
         .catch(() => { $('chatList').innerHTML = '<div class="pane-loading">' + t().importError + '</div>'; })
         .finally(() => { chatsLoading = false; $('loadChatsBtn').disabled = false; });
     }
 
     const CHAT_LIMIT = 10;
+    let chatPage = 0;
+    const CHEV_L = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+    const CHEV_R = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+
     function renderChats() {
       const d = t();
       const q = $('chatSearch').value.trim().toLowerCase();
       const all = allChats.filter((c) => !q || String(c.name).toLowerCase().includes(q));
-      const list = all.slice(0, CHAT_LIMIT);
+      const totalPages = Math.max(1, Math.ceil(all.length / CHAT_LIMIT));
+      if (chatPage > totalPages - 1) chatPage = totalPages - 1;
+      if (chatPage < 0) chatPage = 0;
+      const start = chatPage * CHAT_LIMIT;
+      const list = all.slice(start, start + CHAT_LIMIT);
       const box = $('chatList');
       const foot = $('chatFoot');
-      if (!all.length) { box.innerHTML = '<div class="pane-loading">' + d.noChats + '</div>'; if (foot) foot.textContent = ''; return; }
+      foot.innerHTML = '';
+      if (!all.length) { box.innerHTML = '<div class="pane-loading">' + d.noChats + '</div>'; return; }
       box.innerHTML = '';
       for (const c of list) {
         const row = document.createElement('button');
@@ -784,7 +901,22 @@
         row.onclick = () => loadMembers(c);
         box.appendChild(row);
       }
-      if (foot) foot.textContent = all.length > CHAT_LIMIT ? d.showingCount(list.length, all.length) : '';
+      if (totalPages > 1) {
+        const prev = document.createElement('button');
+        prev.type = 'button'; prev.className = 'pager-btn';
+        prev.innerHTML = CHEV_L + '<span>' + d.prevPage + '</span>';
+        prev.disabled = chatPage === 0;
+        prev.onclick = () => { chatPage -= 1; renderChats(); };
+        const info = document.createElement('span');
+        info.className = 'pager-info';
+        info.textContent = d.pageOf(chatPage + 1, totalPages);
+        const next = document.createElement('button');
+        next.type = 'button'; next.className = 'pager-btn';
+        next.innerHTML = '<span>' + d.nextPage + '</span>' + CHEV_R;
+        next.disabled = chatPage >= totalPages - 1;
+        next.onclick = () => { chatPage += 1; renderChats(); };
+        foot.append(prev, info, next);
+      }
     }
 
     function resetMembers() {
@@ -886,7 +1018,7 @@
     };
 
     $('loadChatsBtn').onclick = loadChats;
-    $('chatSearch').addEventListener('input', renderChats);
+    $('chatSearch').addEventListener('input', () => { chatPage = 0; renderChats(); });
 
     applyLang();
   </script>

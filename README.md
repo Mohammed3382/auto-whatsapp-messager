@@ -3,7 +3,7 @@
 <p align="center">Send one message to many contacts, with a natural pause between each. Through WhatsApp Web. No API, no cost.</p>
 
 <p align="center">
-  <a href="https://github.com/Mohammed3382/auto-whatsapp-messager/releases/download/v1.2.0/AutoWhatsAppMessager-Setup-1.2.0.exe">
+  <a href="https://github.com/Mohammed3382/auto-whatsapp-messager/releases/download/v1.3.0/AutoWhatsAppMessager-Setup-1.3.0.exe">
     <img src="https://img.shields.io/badge/Download-Windows%20installer%20(.exe)-22c55e?style=for-the-badge&logo=windows&logoColor=white" alt="Download the Windows installer" height="46">
   </a>
 </p>
@@ -18,7 +18,9 @@
 2. Open the app. On your phone: WhatsApp → Settings → Linked Devices → Link a Device, then scan the QR code.
 3. When it says Connected, load a group (or type numbers), write your message, and click Send.
 
-You only scan once. Your login stays saved on the laptop, and updates keep it.
+You only scan once. Your login stays saved on the laptop, and updates keep it. If the code ever gets stuck, use the **Refresh QR** button to get a clean one.
+
+You can also **attach an image or file** (up to 16 MB); it goes to each contact with your text as the caption.
 
 ### Pull numbers from your groups
 
@@ -41,13 +43,13 @@ You only do this once. If you prefer, right-click the downloaded file → **Prop
 **Verify your download (optional).** Check the file is genuine by comparing its SHA-256:
 
 ```powershell
-Get-FileHash .\AutoWhatsAppMessager-Setup-1.2.0.exe -Algorithm SHA256
+Get-FileHash .\AutoWhatsAppMessager-Setup-1.3.0.exe -Algorithm SHA256
 ```
 
 Expected:
 
 ```
-3E5B181FB36105C86ED87CF7DC017AEB72269FFBB125B158A1D6E23A81087BCC
+1700CA620AF3A37E6E4DBC6442112452A60C877AFBCE65CD4D4D67A716CFC0A5
 ```
 
 To remove the warning entirely you would need a code-signing certificate (an EV certificate gives zero warnings but costs money). For a personal tool, "Run anyway" is the normal path.
