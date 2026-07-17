@@ -1,0 +1,8 @@
+node_modules/
+.puppeteer-cache/
+.wwebjs_auth/
+.wwebjs_cache/
+dist/
+.playwright-mcp/
+*.png
+*.log

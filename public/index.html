@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Auto WhatsApp Messager</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%2322c55e'/%3E%3Cpath d='M6.5 7.5h11v7h-8l-3 3z' fill='none' stroke='%23042012' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #020617;
+      --panel: #0f172a;
+      --panel-2: #1e293b;
+      --line: #24334a;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #22c55e;
+      --accent-strong: #16a34a;
+      --danger: #f43f5e;
+      --warn: #f59e0b;
+      --radius: 16px;
+      --font: 'Inter', 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background:
+        radial-gradient(1100px 520px at 82% -12%, #0b3b2a 0%, transparent 60%),
+        radial-gradient(900px 500px at 0% 0%, #10203a 0%, transparent 55%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---------- Header ---------- */
+    header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 26px; border-bottom: 1px solid var(--line);
+      background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(8px);
+    }
+    .logo {
+      width: 42px; height: 42px; border-radius: 12px; flex: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      display: grid; place-items: center; color: #04120b;
+      box-shadow: 0 6px 18px rgba(34, 197, 94, 0.25);
+    }
+    .logo svg { width: 24px; height: 24px; }
+    .titles h1 { font-size: 17px; margin: 0; font-weight: 600; letter-spacing: 0.2px; }
+    .titles p { margin: 3px 0 0; font-size: 12.5px; color: var(--muted); }
+    .header-spacer { margin-inline-start: auto; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+      background: var(--panel-2); border: 1px solid var(--line); white-space: nowrap;
+    }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+    .dot.ready { background: var(--accent); box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.16); }
+    .dot.qr, .dot.authenticating { background: var(--warn); }
+    .dot.disconnected, .dot.auth_failure { background: var(--danger); }
+
+    .lang-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+      border-radius: 999px; padding: 9px 14px; font: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s, border-color 0.2s;
+    }
+    .lang-btn:hover { background: #26364f; border-color: #34486a; }
+    .lang-btn svg { width: 16px; height: 16px; }
+
+    /* ---------- Layout ---------- */
+    main {
+      max-width: 1080px; margin: 0 auto; padding: 24px;
+      display: grid; grid-template-columns: 350px 1fr; gap: 20px;
+    }
+    .card {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 22px;
+    }
+    .card h2 { margin: 0 0 5px; font-size: 15.5px; font-weight: 600; }
+    .card .hint { margin: 0 0 16px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+
+    .warnbar {
+      grid-column: 1 / -1; display: flex; gap: 12px; align-items: flex-start;
+      background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.28);
+      color: #fcd77f; border-radius: 12px; padding: 13px 16px; font-size: 12.5px; line-height: 1.55;
+    }
+    .warnbar svg { width: 18px; height: 18px; flex: none; margin-top: 1px; color: var(--warn); }
+
+    /* ---------- Connection ---------- */
+    #qrWrap { text-align: center; }
+    #qrImg { width: 250px; height: 250px; border-radius: 14px; background: #fff; padding: 10px; }
+    .conn-msg { font-size: 13.5px; color: var(--muted); line-height: 1.65; margin: 0; }
+    .steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: step; }
+    .steps li {
+      display: flex; align-items: center; gap: 10px; text-align: start;
+      font-size: 12.5px; color: var(--muted); padding: 6px 0; counter-increment: step;
+    }
+    .steps li::before {
+      content: counter(step); flex: none;
+      width: 22px; height: 22px; border-radius: 50%; background: var(--panel-2);
+      color: var(--accent); font-weight: 700; font-size: 12px;
+      display: grid; place-items: center; border: 1px solid var(--line);
+    }
+
+    /* ---------- Form ---------- */
+    label { display: block; font-size: 12.5px; color: var(--muted); margin: 16px 0 7px; font-weight: 600; }
+    label .sub { font-weight: 400; color: #64748b; }
+    textarea, input[type=number] {
+      width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+      border-radius: 11px; padding: 12px 13px; font-size: 14px; font-family: inherit; resize: vertical;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    textarea:focus, input:focus {
+      outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+    }
+    #numbers { min-height: 132px; font-size: 13px; line-height: 1.6; }
+    #message { min-height: 118px; line-height: 1.5; }
+    .row { display: flex; gap: 12px; }
+    .row > div { flex: 1; }
+
+    .btns { display: flex; gap: 10px; margin-top: 18px; }
+    button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+      border: 0; border-radius: 11px; padding: 13px 18px; font: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s, opacity 0.2s, border-color 0.2s; min-height: 46px;
+    }
+    button svg { width: 17px; height: 17px; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #04120b; flex: 1; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-strong); }
+    .btn-ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+    .btn-ghost:hover:not(:disabled) { background: #26364f; }
+    .btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(244, 63, 94, 0.4); }
+    .btn-danger:hover:not(:disabled) { background: rgba(244, 63, 94, 0.1); }
+
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+    /* ---------- Progress + log ---------- */
+    .progress-outer { height: 8px; background: var(--panel-2); border-radius: 999px; overflow: hidden; margin: 5px 0 14px; }
+    .progress-inner { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent-strong), var(--accent)); transition: width 0.3s; }
+    .counts { display: flex; gap: 20px; font-size: 13px; margin-bottom: 12px; color: var(--muted); }
+    .counts b { font-size: 17px; color: var(--text); margin-inline-start: 4px; }
+    .counts .ok b { color: var(--accent); }
+    .counts .fail b { color: var(--danger); }
+
+    #logBox {
+      background: #060d18; border: 1px solid var(--line); border-radius: 12px;
+      height: 210px; overflow-y: auto; padding: 10px 12px;
+      font-size: 12.5px; line-height: 1.7;
+    }
+    .log-line { display: flex; align-items: flex-start; gap: 8px; }
+    .log-line svg { width: 14px; height: 14px; flex: none; margin-top: 3px; }
+    .log-line .l-time { color: #3f5266; font-size: 11px; flex: none; margin-top: 1px; }
+    .log-line bdi { word-break: break-word; }
+    .l-info { color: var(--muted); }
+    .l-info svg { color: var(--muted); }
+    .l-success { color: var(--accent); }
+    .l-error { color: var(--danger); }
+    .empty-log { color: #3f5266; font-size: 12.5px; text-align: center; padding: 20px 0; }
+
+    @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+    </span>
+    <div class="titles">
+      <h1 data-i18n="appTitle">Auto WhatsApp Messager</h1>
+      <p data-i18n="appSubtitle">Send one message to many contacts. Through WhatsApp Web. No API.</p>
+    </div>
+    <span class="header-spacer"></span>
+    <span class="badge"><span id="statusDot" class="dot"></span><span id="statusText" data-i18n="state_starting">Starting…</span></span>
+    <button class="lang-btn" id="langBtn" aria-label="Change language">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <span id="langLabel">عربي</span>
+    </button>
+  </header>
+
+  <main>
+    <div class="warnbar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span data-i18n="warn">Use it responsibly. WhatsApp limits automated bulk sending, so keep your list small, keep the delays human, and only message people who expect to hear from you.</span>
+    </div>
+
+    <!-- Connection -->
+    <section class="card">
+      <h2 data-i18n="connTitle">Connection</h2>
+      <p class="hint" data-i18n="connHint">Link this app to your phone once. Your session is saved on this computer.</p>
+      <div id="connBody">
+        <p class="conn-msg" data-i18n="connWaiting">Waiting for WhatsApp to start…</p>
+      </div>
+    </section>
+
+    <!-- Compose -->
+    <section class="card">
+      <h2 data-i18n="composeTitle">Compose and send</h2>
+      <p class="hint" data-i18n="composeHint">One number per line, with country code. You can add a name after a comma to personalize.</p>
+
+      <label for="numbers" data-i18n="recipientsLabel">Recipients</label>
+      <textarea id="numbers" data-i18n-ph="recipientsPh"></textarea>
+
+      <label for="message">
+        <span data-i18n="messageLabel">Message</span>
+        <span class="sub" data-i18n="messageHintName">(use {name} to insert the name)</span>
+      </label>
+      <textarea id="message" data-i18n-ph="messagePh"></textarea>
+
+      <div class="row">
+        <div>
+          <label for="minDelay" data-i18n="minDelayLabel">Min delay (seconds)</label>
+          <input id="minDelay" type="number" min="1" value="4" />
+        </div>
+        <div>
+          <label for="maxDelay" data-i18n="maxDelayLabel">Max delay (seconds)</label>
+          <input id="maxDelay" type="number" min="1" value="9" />
+        </div>
+      </div>
+
+      <div class="btns">
+        <button class="btn-primary" id="sendBtn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <span data-i18n="sendBtn">Send messages</span>
+        </button>
+        <button class="btn-ghost" id="stopBtn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          <span data-i18n="stopBtn">Stop</span>
+        </button>
+      </div>
+      <div class="meta"><span id="recipCount"></span><span id="etaText"></span></div>
+
+      <label data-i18n="progressLabel">Progress</label>
+      <div class="progress-outer"><div class="progress-inner" id="progBar"></div></div>
+      <div class="counts">
+        <span class="ok"><span data-i18n="sentLabel">Sent</span><b id="cSent">0</b></span>
+        <span class="fail"><span data-i18n="failedLabel">Failed</span><b id="cFail">0</b></span>
+        <span><span data-i18n="totalLabel">Total</span><b id="cTotal">0</b></span>
+      </div>
+      <div id="logBox"><div class="empty-log" data-i18n="logEmpty">Live activity will appear here.</div></div>
+    </section>
+  </main>
+
+  <script>
+    // ---- SVG icons for log lines ----
+    const ICON = {
+      success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+      error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+      info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="16"/></svg>',
+    };
+
+    // ---- Translations ----
+    const I18N = {
+      en: {
+        dir: 'ltr', langLabel: 'عربي',
+        appTitle: 'Auto WhatsApp Messager',
+        appSubtitle: 'Send one message to many contacts. Through WhatsApp Web. No API.',
+        warn: 'Use it responsibly. WhatsApp limits automated bulk sending, so keep your list small, keep the delays human, and only message people who expect to hear from you.',
+        state_starting: 'Starting…', state_qr: 'Scan QR code', state_authenticating: 'Loading…',
+        state_ready: 'Connected', state_disconnected: 'Disconnected', state_auth_failure: 'Sign-in failed',
+        connTitle: 'Connection',
+        connHint: 'Link this app to your phone once. Your session is saved on this computer.',
+        connWaiting: 'Waiting for WhatsApp to start…',
+        qrStep1: 'Open WhatsApp on your phone',
+        qrStep2: 'Go to Settings, then Linked Devices, then Link a Device',
+        qrStep3: 'Point your phone at this code',
+        connReady: 'Connected and ready to send.',
+        connAuth: 'Signed in. Loading your chats…',
+        connDisconnected: 'Not connected. Close and reopen the app to reconnect.',
+        logoutBtn: 'Log out',
+        composeTitle: 'Compose and send',
+        composeHint: 'One number per line, with country code. You can add a name after a comma to personalize.',
+        recipientsLabel: 'Recipients',
+        recipientsPh: '905551234567, Ahmet\n15551234567, Sara\n447700900123',
+        messageLabel: 'Message', messageHintName: '(use {name} to insert the name)',
+        messagePh: 'Hi {name}! Reminder about our study group tomorrow at 3pm.',
+        minDelayLabel: 'Min delay (seconds)', maxDelayLabel: 'Max delay (seconds)',
+        sendBtn: 'Send messages', stopBtn: 'Stop',
+        progressLabel: 'Progress', sentLabel: 'Sent', failedLabel: 'Failed', totalLabel: 'Total',
+        logEmpty: 'Live activity will appear here.',
+        recip: (n) => n + (n === 1 ? ' recipient' : ' recipients'),
+        eta: (s) => '~' + s + 's total',
+        sendError: {
+          not_connected: 'WhatsApp is not connected yet.',
+          already_running: 'A send is already in progress.',
+          empty_message: 'The message is empty.',
+          no_numbers: 'No valid numbers found.',
+          generic: 'Could not start sending.',
+        },
+        log: {
+          qr_ready: () => 'QR code ready. Scan it with WhatsApp on your phone.',
+          authenticated: () => 'Signed in. Loading chats…',
+          auth_failed: (d) => 'Sign-in failed: ' + d.msg,
+          ready: () => 'WhatsApp is connected and ready.',
+          disconnected: (d) => 'Disconnected: ' + d.reason,
+          wa_start_failed: (d) => 'Could not start WhatsApp: ' + d.msg,
+          job_start: (d) => 'Starting: ' + d.count + ' contact(s), delay between ' + d.min + ' and ' + d.max + ' seconds.',
+          stopped_by_user: () => 'Stopped by user.',
+          not_on_wa: (d) => d.label + ': not on WhatsApp or the number is invalid.',
+          sent_ok: (d) => 'Sent to ' + d.label,
+          send_error: (d) => d.label + ': error ' + d.err,
+          waiting: (d) => 'Waiting ' + d.sec + 's…',
+          finished: (d) => 'Finished. Sent ' + d.sent + ', failed ' + d.failed + ', total ' + d.total + '.',
+          stopping: () => 'Stopping after the current message…',
+          logged_out: () => 'Logged out. Close and reopen the app to sign in with another phone.',
+        },
+      },
+      ar: {
+        dir: 'rtl', langLabel: 'English',
+        appTitle: 'المُرسِل التلقائي للواتساب',
+        appSubtitle: 'رسالة واحدة إلى عدة جهات اتصال، عبر واتساب ويب، بدون API.',
+        warn: 'استخدمه بمسؤولية. واتساب يقيّد الإرسال الجماعي التلقائي، لذا اجعل قائمتك صغيرة، واترك فواصل زمنية طبيعية، وراسل فقط من يتوقّع رسالتك.',
+        state_starting: 'قيد البدء…', state_qr: 'امسح رمز QR', state_authenticating: 'جارٍ التحميل…',
+        state_ready: 'متصل', state_disconnected: 'غير متصل', state_auth_failure: 'فشل الدخول',
+        connTitle: 'الاتصال',
+        connHint: 'اربط التطبيق بهاتفك مرة واحدة. تُحفظ الجلسة على هذا الجهاز.',
+        connWaiting: 'بانتظار بدء واتساب…',
+        qrStep1: 'افتح واتساب على هاتفك',
+        qrStep2: 'اذهب إلى الإعدادات ثم الأجهزة المرتبطة ثم ربط جهاز',
+        qrStep3: 'وجّه كاميرا هاتفك نحو هذا الرمز',
+        connReady: 'متصل وجاهز للإرسال.',
+        connAuth: 'تم الدخول. جارٍ تحميل محادثاتك…',
+        connDisconnected: 'غير متصل. أغلق التطبيق ثم افتحه من جديد لإعادة الاتصال.',
+        logoutBtn: 'تسجيل الخروج',
+        composeTitle: 'اكتب وأرسِل',
+        composeHint: 'رقم واحد في كل سطر مع رمز الدولة. يمكنك إضافة اسم بعد فاصلة لتخصيص الرسالة.',
+        recipientsLabel: 'المستلمون',
+        recipientsPh: '905551234567، أحمد\n15551234567، سارة\n447700900123',
+        messageLabel: 'الرسالة', messageHintName: '(استخدم {name} لإدراج الاسم)',
+        messagePh: 'مرحبًا {name}! تذكير بلقاء مجموعة الدراسة غدًا الساعة 3 مساءً.',
+        minDelayLabel: 'أقل فاصل (ثوانٍ)', maxDelayLabel: 'أطول فاصل (ثوانٍ)',
+        sendBtn: 'إرسال الرسائل', stopBtn: 'إيقاف',
+        progressLabel: 'التقدّم', sentLabel: 'أُرسلت', failedLabel: 'فشلت', totalLabel: 'الإجمالي',
+        logEmpty: 'سيظهر النشاط المباشر هنا.',
+        recip: (n) => 'المستلمون: ' + n,
+        eta: (s) => '~' + s + ' ثانية إجمالًا',
+        sendError: {
+          not_connected: 'واتساب غير متصل بعد.',
+          already_running: 'هناك إرسال جارٍ بالفعل.',
+          empty_message: 'الرسالة فارغة.',
+          no_numbers: 'لا توجد أرقام صالحة.',
+          generic: 'تعذّر بدء الإرسال.',
+        },
+        log: {
+          qr_ready: () => 'رمز QR جاهز. امسحه بواتساب من هاتفك.',
+          authenticated: () => 'تم الدخول. جارٍ تحميل المحادثات…',
+          auth_failed: (d) => 'فشل الدخول: ' + d.msg,
+          ready: () => 'واتساب متصل وجاهز.',
+          disconnected: (d) => 'انقطع الاتصال: ' + d.reason,
+          wa_start_failed: (d) => 'تعذّر تشغيل واتساب: ' + d.msg,
+          job_start: (d) => 'بدء الإرسال إلى ' + d.count + ' جهة اتصال، بفاصل بين ' + d.min + ' و' + d.max + ' ثانية.',
+          stopped_by_user: () => 'أوقفه المستخدم.',
+          not_on_wa: (d) => d.label + ': ليس على واتساب أو الرقم غير صالح.',
+          sent_ok: (d) => 'تم الإرسال إلى ' + d.label,
+          send_error: (d) => d.label + ': خطأ ' + d.err,
+          waiting: (d) => 'انتظار ' + d.sec + ' ثانية…',
+          finished: (d) => 'انتهى. أُرسلت ' + d.sent + '، فشلت ' + d.failed + '، الإجمالي ' + d.total + '.',
+          stopping: () => 'إيقاف بعد الرسالة الحالية…',
+          logged_out: () => 'تم تسجيل الخروج. أغلق التطبيق ثم افتحه للدخول برقم آخر.',
+        },
+      },
+    };
+
+    const $ = (id) => document.getElementById(id);
+    let lang = localStorage.getItem('lang') || 'en';
+    let currentState = 'starting';
+    let currentQr = null;
+    let hasLogs = false;
+    const t = () => I18N[lang];
+
+    function applyLang() {
+      const d = t();
+      document.documentElement.lang = lang;
+      document.documentElement.dir = d.dir;
+      document.title = d.appTitle;
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute('data-i18n');
+        if (d[key] !== undefined) el.textContent = d[key];
+      });
+      document.querySelectorAll('[data-i18n-ph]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-ph');
+        if (d[key] !== undefined) el.placeholder = d[key];
+      });
+      $('langLabel').textContent = d.langLabel;
+      renderConn();
+      updateCount();
+    }
+
+    function renderConn() {
+      const d = t();
+      const body = $('connBody');
+      $('statusDot').className = 'dot ' + currentState;
+      $('statusText').textContent = d['state_' + currentState] || currentState;
+      $('sendBtn').disabled = currentState !== 'ready' || (currentJob && currentJob.running);
+
+      if (currentState === 'qr' && currentQr) {
+        body.innerHTML =
+          '<div id="qrWrap"><img id="qrImg" alt="WhatsApp QR code"/>' +
+          '<ol class="steps"><li></li><li></li><li></li></ol></div>';
+        $('qrImg').src = currentQr;
+        const items = body.querySelectorAll('.steps li');
+        items[0].append(d.qrStep1);
+        items[1].append(d.qrStep2);
+        items[2].append(d.qrStep3);
+      } else if (currentState === 'ready') {
+        body.innerHTML = '<p class="conn-msg"></p><div class="btns"><button class="btn-danger" id="logoutBtn"></button></div>';
+        body.querySelector('.conn-msg').textContent = d.connReady;
+        const lo = $('logoutBtn');
+        lo.textContent = d.logoutBtn;
+        lo.onclick = () => fetch('/api/logout', { method: 'POST' });
+      } else if (currentState === 'authenticating') {
+        body.innerHTML = '<p class="conn-msg"></p>';
+        body.querySelector('.conn-msg').textContent = d.connAuth;
+      } else if (currentState === 'disconnected' || currentState === 'auth_failure') {
+        body.innerHTML = '<p class="conn-msg"></p>';
+        body.querySelector('.conn-msg').textContent = d.connDisconnected;
+      } else {
+        body.innerHTML = '<p class="conn-msg"></p>';
+        body.querySelector('.conn-msg').textContent = d.connWaiting;
+      }
+    }
+
+    function setState(state, qr) {
+      currentState = state;
+      currentQr = qr;
+      renderConn();
+    }
+
+    function pushLine(level, text, time) {
+      const box = $('logBox');
+      if (!hasLogs) { box.innerHTML = ''; hasLogs = true; }
+      const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+      const ts = new Date(time || Date.now()).toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = 'log-line l-' + level;
+      const icon = document.createElement('span');
+      icon.innerHTML = ICON[level] || ICON.info;
+      const timeEl = document.createElement('span');
+      timeEl.className = 'l-time';
+      timeEl.textContent = ts;
+      const body = document.createElement('bdi');
+      body.textContent = text;
+      line.append(icon.firstChild, timeEl, body);
+      box.appendChild(line);
+      if (atBottom) box.scrollTop = box.scrollHeight;
+    }
+
+    function addLog(level, code, data, time) {
+      const tmpl = t().log[code];
+      pushLine(level, tmpl ? tmpl(data || {}) : code, time);
+    }
+
+    let currentJob = { running: false, sent: 0, failed: 0, total: 0 };
+    function setJob(job) {
+      currentJob = job;
+      $('cSent').textContent = job.sent;
+      $('cFail').textContent = job.failed;
+      $('cTotal').textContent = job.total;
+      const pct = job.total ? Math.round(((job.sent + job.failed) / job.total) * 100) : 0;
+      $('progBar').style.width = pct + '%';
+      $('stopBtn').disabled = !job.running;
+      $('sendBtn').disabled = job.running || currentState !== 'ready';
+    }
+
+    function updateCount() {
+      const d = t();
+      const lines = $('numbers').value.split('\n').map((l) => l.trim()).filter(Boolean);
+      $('recipCount').textContent = lines.length ? d.recip(lines.length) : '';
+      const mn = Number($('minDelay').value) || 0, mx = Number($('maxDelay').value) || 0;
+      $('etaText').textContent = lines.length > 1 ? d.eta(Math.round(((mn + mx) / 2) * (lines.length - 1))) : '';
+    }
+
+    // ---- Live stream ----
+    const es = new EventSource('/api/events');
+    es.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'state') setState(msg.state, msg.qr);
+      else if (msg.type === 'log') addLog(msg.level, msg.code, msg.data, msg.time);
+      else if (msg.type === 'job') setJob(msg.job);
+    };
+
+    $('langBtn').onclick = () => {
+      lang = lang === 'en' ? 'ar' : 'en';
+      localStorage.setItem('lang', lang);
+      applyLang();
+    };
+    ['numbers', 'minDelay', 'maxDelay'].forEach((id) => $(id).addEventListener('input', updateCount));
+
+    $('sendBtn').onclick = async () => {
+      $('sendBtn').disabled = true;
+      const r = await fetch('/api/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          numbers: $('numbers').value,
+          message: $('message').value,
+          minDelaySec: Number($('minDelay').value),
+          maxDelaySec: Number($('maxDelay').value),
+        }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const map = t().sendError;
+        pushLine('error', map[data.error] || map.generic, Date.now());
+        $('sendBtn').disabled = currentState !== 'ready';
+      }
+    };
+    $('stopBtn').onclick = () => fetch('/api/stop', { method: 'POST' });
+
+    applyLang();
+  </script>
+</body>
+</html>

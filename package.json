@@ -1,0 +1,43 @@
+{
+  "name": "auto-whatsapp-messager",
+  "version": "1.0.0",
+  "description": "Send one message to a list of WhatsApp contacts automatically, with human-like delays, via WhatsApp Web (no API). Ships as a portable desktop app.",
+  "main": "main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4",
+    "whatsapp-web.js": "^1.26.0"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.autowa.messager",
+    "productName": "Auto WhatsApp Messager",
+    "files": [
+      "main.js",
+      "server.js",
+      "public/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": ".puppeteer-cache/chrome",
+        "to": "puppeteer-cache/chrome"
+      }
+    ],
+    "win": {
+      "target": "portable"
+    },
+    "portable": {
+      "artifactName": "AutoWhatsAppMessager-${version}.exe"
+    }
+  }
+}
